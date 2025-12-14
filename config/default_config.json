@@ -1,0 +1,14 @@
+{
+    "default_bitrate": 500000,
+    "default_interface": "virtual",
+    "max_samples": 10000,
+    "update_rate_hz": 20,
+    "recording_directory": "recordings",
+    "plot_settings": {
+        "default_time_window": "10s",
+        "default_mode": "Separate Plots"
+    },
+    "statistics": {
+        "default_window": "All"
+    }
+}
