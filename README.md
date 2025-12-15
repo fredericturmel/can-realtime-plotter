@@ -1,10 +1,35 @@
 # CAN Real-Time Plotter
 
-A comprehensive CAN bus data analysis and visualization application supporting PCAN and IXXAT USB adapters.
+## 🚀 Version 2.0 - Professional Edition
+
+A comprehensive CAN bus data analysis and visualization application with **multi-interface support**, **dynamic dashboards**, and **professional design**.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue)
 ![Python](https://img.shields.io/badge/python-3.8+-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
+![Version](https://img.shields.io/badge/version-2.0-brightgreen)
+
+---
+
+## 🎉 **NEW in v2.0!**
+
+### ✨ Major Features
+
+- **🔌 Multi-Interface Management** - Manage multiple CAN interfaces simultaneously
+- **📋 Hierarchical Message Browser** - Navigate messages with full enumeration support  
+- **📊 Dynamic Dashboards** - Create custom dashboards with 5 widget types
+- **💾 Import/Export** - Share dashboard configurations as JSON
+- **🎨 Professional Design** - Minimalist UI with single accent color
+- **📈 Real-time Bus Load** - Per-interface monitoring with colored progress bars
+
+### 📚 Documentation v2.0
+
+- **[🚀 Quick Start](QUICK_START.md)** - Get started in 30 seconds
+- **[✨ New Features](NEW_FEATURES.md)** - Complete v2.0 documentation
+- **[🔄 Migration Guide](MIGRATION_GUIDE.md)** - Migrate from v1.x
+- **[📊 V2 Summary](V2_SUMMARY.md)** - Complete changelog
+
+---
 
 ## 🎯 Quick Links
 

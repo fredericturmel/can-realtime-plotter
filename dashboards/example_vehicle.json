@@ -1,0 +1,141 @@
+{
+  "name": "Dashboard Exemple - Véhicule",
+  "widgets": [
+    {
+      "type": "Jauge circulaire",
+      "title": "Vitesse",
+      "row": 0,
+      "col": 0,
+      "rowspan": 2,
+      "colspan": 2,
+      "config": {
+        "min": 0,
+        "max": 250,
+        "unit": "km/h",
+        "signal": "Vehicle.Speed"
+      }
+    },
+    {
+      "type": "Jauge circulaire",
+      "title": "Régime Moteur",
+      "row": 0,
+      "col": 2,
+      "rowspan": 2,
+      "colspan": 2,
+      "config": {
+        "min": 0,
+        "max": 8000,
+        "unit": "RPM",
+        "signal": "Engine.RPM"
+      }
+    },
+    {
+      "type": "Affichage numérique",
+      "title": "Température Moteur",
+      "row": 0,
+      "col": 4,
+      "rowspan": 1,
+      "colspan": 1,
+      "config": {
+        "unit": "°C",
+        "decimals": 1,
+        "signal": "Engine.Temperature"
+      }
+    },
+    {
+      "type": "Affichage numérique",
+      "title": "Niveau Carburant",
+      "row": 1,
+      "col": 4,
+      "rowspan": 1,
+      "colspan": 1,
+      "config": {
+        "unit": "%",
+        "decimals": 0,
+        "signal": "Fuel.Level"
+      }
+    },
+    {
+      "type": "État binaire",
+      "title": "Contact",
+      "row": 2,
+      "col": 0,
+      "rowspan": 1,
+      "colspan": 1,
+      "config": {
+        "true_label": "ON",
+        "false_label": "OFF",
+        "signal": "Ignition.Status"
+      }
+    },
+    {
+      "type": "État binaire",
+      "title": "Clignotant Gauche",
+      "row": 2,
+      "col": 1,
+      "rowspan": 1,
+      "colspan": 1,
+      "config": {
+        "true_label": "ACTIF",
+        "false_label": "INACTIF",
+        "signal": "Turn.Left"
+      }
+    },
+    {
+      "type": "État binaire",
+      "title": "Clignotant Droit",
+      "row": 2,
+      "col": 2,
+      "rowspan": 1,
+      "colspan": 1,
+      "config": {
+        "true_label": "ACTIF",
+        "false_label": "INACTIF",
+        "signal": "Turn.Right"
+      }
+    },
+    {
+      "type": "Énumération",
+      "title": "Mode de Conduite",
+      "row": 2,
+      "col": 3,
+      "rowspan": 1,
+      "colspan": 2,
+      "config": {
+        "signal": "Drive.Mode",
+        "enum_values": {
+          "0": "ECO",
+          "1": "COMFORT",
+          "2": "SPORT",
+          "3": "SPORT+"
+        }
+      }
+    },
+    {
+      "type": "Mini graphe",
+      "title": "Historique Vitesse",
+      "row": 3,
+      "col": 0,
+      "rowspan": 2,
+      "colspan": 3,
+      "config": {
+        "unit": "km/h",
+        "max_points": 200,
+        "signal": "Vehicle.Speed"
+      }
+    },
+    {
+      "type": "Mini graphe",
+      "title": "Historique Température",
+      "row": 3,
+      "col": 3,
+      "rowspan": 2,
+      "colspan": 2,
+      "config": {
+        "unit": "°C",
+        "max_points": 200,
+        "signal": "Engine.Temperature"
+      }
+    }
+  ]
+}

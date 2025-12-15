@@ -18,6 +18,7 @@ class CANInterfaceManager(QObject):
     
     # Signals
     message_received = pyqtSignal(can.Message)
+    message_sent = pyqtSignal(can.Message)
     connection_status_changed = pyqtSignal(bool, str)  # (connected, status_message)
     error_occurred = pyqtSignal(str)
     
@@ -129,6 +130,7 @@ class CANInterfaceManager(QObject):
         try:
             self.bus.send(msg)
             logger.debug(f"Sent message: {msg}")
+            self.message_sent.emit(msg)
             return True
         except Exception as e:
             error_msg = f"Failed to send message: {str(e)}"

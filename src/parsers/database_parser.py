@@ -20,6 +20,11 @@ class DatabaseParser:
         self.file_path: Optional[Path] = None
         self.file_type: Optional[str] = None
         
+    @property
+    def database(self):
+        """Alias for self.db for compatibility"""
+        return self.db
+        
     def load_database(self, file_path: str) -> bool:
         """
         Load a DBC or SYM file.
@@ -44,8 +49,21 @@ class DatabaseParser:
                 self.db = cantools.database.load_file(file_path)
                 self.file_type = 'dbc'
             elif extension == '.sym':
-                self.db = cantools.database.load_file(file_path)
-                self.file_type = 'sym'
+                try:
+                    self.db = cantools.database.load_file(file_path, database_format='sym')
+                    self.file_type = 'sym'
+                except Exception as sym_error:
+                    error_msg = str(sym_error)
+                    if "Only SYM version 6.0 is supported" in error_msg:
+                        logger.error(f"SYM file version not supported by cantools")
+                        logger.error(f"cantools only supports SYM version 6.0")
+                        logger.error(f"Please convert your SYM file to:")
+                        logger.error(f"  1. DBC format (recommended) - use Vector CANdb++ or similar tools")
+                        logger.error(f"  2. SYM version 6.0 - if your tool supports exporting to this version")
+                        logger.error(f"  3. Use a DBC file instead")
+                        return False
+                    else:
+                        raise sym_error
             else:
                 logger.error(f"Unsupported file type: {extension}")
                 return False

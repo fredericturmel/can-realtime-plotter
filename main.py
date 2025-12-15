@@ -8,7 +8,7 @@ A comprehensive tool for CAN bus data visualization, recording, and analysis.
 import sys
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt
-from src.gui.main_window import MainWindow
+from src.gui.modern_main_window import ModernMainWindow
 
 
 def main():
@@ -21,8 +21,8 @@ def main():
     app.setApplicationName("CAN Real-Time Plotter")
     app.setOrganizationName("CANTools")
     
-    # Create and show main window
-    window = MainWindow()
+    # Create and show modern main window
+    window = ModernMainWindow()
     window.show()
     
     sys.exit(app.exec_())

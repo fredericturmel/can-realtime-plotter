@@ -19,11 +19,20 @@ class PlotWidget(QWidget):
         self.signals = []
         self.plots = {}
         self.curves = {}
+        # Modern, harmonious color palette
         self.colors = [
-            (255, 0, 0), (0, 255, 0), (0, 0, 255),
-            (255, 255, 0), (255, 0, 255), (0, 255, 255),
-            (255, 128, 0), (128, 255, 0), (255, 0, 128)
+            '#58a6ff',  # Blue
+            '#3fb950',  # Green
+            '#f85149',  # Red
+            '#d29922',  # Yellow
+            '#bc8cff',  # Purple
+            '#56d4dd',  # Cyan
+            '#ff7b72',  # Light red
+            '#79c0ff',  # Light blue
+            '#a5d6ff'   # Lighter blue
         ]
+        self.time_sync_enabled = True  # Enable time synchronization by default
+        self.master_plot = None  # Reference to the master plot for time sync
         
         self.init_ui()
         
@@ -34,24 +43,51 @@ class PlotWidget(QWidget):
         # Control panel
         control_layout = QHBoxLayout()
         
+        # Interpolation mode
+        control_layout.addWidget(QLabel("📊 Interpolation:"))
+        self.interpolation_combo = QComboBox()
+        self.interpolation_combo.addItems(['Differential (Steps)', 'Linear', 'Smooth', 'None (Points)'])
+        self.interpolation_combo.setCurrentText('Differential (Steps)')
+        self.interpolation_combo.currentTextChanged.connect(self.change_interpolation)
+        self.interpolation_combo.setToolTip("Choose how data points are connected")
+        control_layout.addWidget(self.interpolation_combo)
+        
+        control_layout.addWidget(QLabel("|"))
+        
+        # Plot mode
+        control_layout.addWidget(QLabel("📈 Layout:"))
         self.plot_mode_combo = QComboBox()
         self.plot_mode_combo.addItems(['Separate Plots', 'Single Plot', 'Grid Layout'])
         self.plot_mode_combo.currentTextChanged.connect(self.change_plot_mode)
+        control_layout.addWidget(self.plot_mode_combo)
         
+        control_layout.addWidget(QLabel("|"))
+        
+        # Time window
+        control_layout.addWidget(QLabel("⏱️ Window:"))
         self.time_window_combo = QComboBox()
         self.time_window_combo.addItems(['5s', '10s', '30s', '60s', 'All'])
         self.time_window_combo.setCurrentText('10s')
+        control_layout.addWidget(self.time_window_combo)
         
-        self.autoscale_btn = QPushButton("Auto Scale")
+        control_layout.addWidget(QLabel("|"))
+        
+        # Time sync checkbox
+        from PyQt5.QtWidgets import QCheckBox
+        self.time_sync_checkbox = QCheckBox("🔗 Sync Time Axis")
+        self.time_sync_checkbox.setChecked(self.time_sync_enabled)
+        self.time_sync_checkbox.toggled.connect(self.toggle_time_sync)
+        self.time_sync_checkbox.setToolTip("Synchronize time axis across all plots")
+        control_layout.addWidget(self.time_sync_checkbox)
+        
+        control_layout.addWidget(QLabel("|"))
+        
+        self.autoscale_btn = QPushButton("🔍 Auto Scale")
         self.autoscale_btn.clicked.connect(self.autoscale_all)
         
-        self.clear_btn = QPushButton("Clear")
+        self.clear_btn = QPushButton("🗑️ Clear")
         self.clear_btn.clicked.connect(self.clear_all)
         
-        control_layout.addWidget(QLabel("Plot Mode:"))
-        control_layout.addWidget(self.plot_mode_combo)
-        control_layout.addWidget(QLabel("Time Window:"))
-        control_layout.addWidget(self.time_window_combo)
         control_layout.addWidget(self.autoscale_btn)
         control_layout.addWidget(self.clear_btn)
         control_layout.addStretch()
@@ -84,6 +120,14 @@ class PlotWidget(QWidget):
             return
         
         plot_mode = self.plot_mode_combo.currentText()
+        interpolation_mode = self.interpolation_combo.currentText()
+        
+        # Determine curve style based on interpolation
+        use_step = interpolation_mode == 'Differential (Steps)'
+        use_points_only = interpolation_mode == 'None (Points)'
+        
+        # Reset master plot
+        self.master_plot = None
         
         if plot_mode == 'Single Plot':
             # All signals on one plot
@@ -93,9 +137,17 @@ class PlotWidget(QWidget):
             plot.showGrid(x=True, y=True)
             plot.addLegend()
             
+            # Set as master plot for time sync
+            self.master_plot = plot
+            
             for i, signal_name in enumerate(self.signals):
                 color = self.colors[i % len(self.colors)]
-                curve = plot.plot(pen=pg.mkPen(color=color, width=2), name=signal_name)
+                if use_points_only:
+                    curve = plot.plot(pen=None, symbol='o', symbolSize=6, 
+                                    symbolBrush=color, name=signal_name)
+                else:
+                    curve = plot.plot(pen=pg.mkPen(color=color, width=2), 
+                                    name=signal_name, stepMode='right' if use_step else False)
                 self.curves[signal_name] = curve
                 self.plots[signal_name] = plot
                 
@@ -107,8 +159,18 @@ class PlotWidget(QWidget):
                 plot.setLabel('bottom', 'Time', units='s')
                 plot.showGrid(x=True, y=True)
                 
+                # Link X-axis to master plot for time synchronization
+                if i == 0:
+                    self.master_plot = plot
+                elif self.time_sync_enabled and self.master_plot:
+                    plot.setXLink(self.master_plot)
+                
                 color = self.colors[i % len(self.colors)]
-                curve = plot.plot(pen=pg.mkPen(color=color, width=2))
+                if use_points_only:
+                    curve = plot.plot(pen=None, symbol='o', symbolSize=6, symbolBrush=color)
+                else:
+                    curve = plot.plot(pen=pg.mkPen(color=color, width=2), 
+                                    stepMode='right' if use_step else False)
                 
                 self.plots[signal_name] = plot
                 self.curves[signal_name] = curve
@@ -125,8 +187,18 @@ class PlotWidget(QWidget):
                 plot.setLabel('bottom', 'Time', units='s')
                 plot.showGrid(x=True, y=True)
                 
+                # Link X-axis to master plot for time synchronization
+                if i == 0:
+                    self.master_plot = plot
+                elif self.time_sync_enabled and self.master_plot:
+                    plot.setXLink(self.master_plot)
+                
                 color = self.colors[i % len(self.colors)]
-                curve = plot.plot(pen=pg.mkPen(color=color, width=2))
+                if use_points_only:
+                    curve = plot.plot(pen=None, symbol='o', symbolSize=6, symbolBrush=color)
+                else:
+                    curve = plot.plot(pen=pg.mkPen(color=color, width=2), 
+                                    stepMode='right' if use_step else False)
                 
                 self.plots[signal_name] = plot
                 self.curves[signal_name] = curve
@@ -158,6 +230,53 @@ class PlotWidget(QWidget):
     def change_plot_mode(self, mode: str):
         """Change plot layout mode."""
         self.setup_plots()
+    
+    def toggle_time_sync(self, enabled: bool):
+        """Toggle time synchronization between plots."""
+        self.time_sync_enabled = enabled
+        
+        if enabled:
+            # Re-link all plots to master
+            for signal_name, plot in self.plots.items():
+                if plot != self.master_plot and self.master_plot:
+                    plot.setXLink(self.master_plot)
+        else:
+            # Unlink all plots
+            for signal_name, plot in self.plots.items():
+                if plot != self.master_plot:
+                    plot.setXLink(None)
+    
+    def change_interpolation(self, mode: str):
+        """Change curve interpolation mode."""
+        for signal_name, curve in self.curves.items():
+            if mode == 'Differential (Steps)':
+                # Step mode - keeps value until next sample
+                curve.setData(stepMode='right')
+            elif mode == 'Linear':
+                # Linear interpolation (default)
+                curve.setData(stepMode=False)
+                curve.opts['connect'] = 'all'
+            elif mode == 'Smooth':
+                # Smooth curve using spline-like effect
+                curve.setData(stepMode=False)
+                curve.opts['connect'] = 'all'
+                # Note: For true smoothing, we'd need to interpolate data
+            elif mode == 'None (Points)':
+                # Only show points, no lines
+                curve.opts['connect'] = 'finite'
+                pen = curve.opts['pen']
+                if pen:
+                    curve.setPen(None)
+                    curve.setSymbol('o')
+                    curve.setSymbolSize(6)
+                    curve.setSymbolBrush(pen.color())
+                return
+            
+            # Restore line style for non-point modes
+            if 'pen' in curve.opts and curve.opts['pen'] is None:
+                color = curve.opts.get('symbolBrush', (255, 255, 255))
+                curve.setPen(pg.mkPen(color=color, width=2))
+                curve.setSymbol(None)
     
     def autoscale_all(self):
         """Auto-scale all plots."""
