@@ -486,6 +486,8 @@ class ModernMainWindow(QMainWindow):
         self.interface_panel = InterfaceManagerPanel()
         self.interface_panel.connection_requested.connect(self.on_interface_connect)
         self.interface_panel.disconnection_requested.connect(self.on_interface_disconnect)
+        # Connect database_changed signal from individual interface widgets
+        self.interface_panel.interface_added.connect(self.on_interface_added)
         self.interface_dock.setWidget(self.interface_panel)
         
         self.addDockWidget(Qt.LeftDockWidgetArea, self.interface_dock)
@@ -681,6 +683,52 @@ class ModernMainWindow(QMainWindow):
             )
             self.interface_panel.set_interface_connected(interface_id, False)
             
+    def on_interface_added(self, interface_id, interface_type):
+        """Handle new interface added - connect database_changed signal"""
+        if interface_id in self.interface_panel.interfaces:
+            widget = self.interface_panel.interfaces[interface_id]
+            widget.database_changed.connect(self.on_database_changed)
+    
+    def on_database_changed(self, interface_id, db_path):
+        """Handle database change for a connected interface"""
+        try:
+            # Load the new database
+            db_parser = DatabaseParser()
+            if db_parser.load_database(db_path):
+                self.db_parsers[interface_id] = db_parser
+                self.message_browser.load_database(db_parser.database)
+                
+                # Update message sender if this is the active interface
+                if interface_id in self.can_managers:
+                    self.message_sender.set_managers(
+                        self.can_managers[interface_id],
+                        db_parser
+                    )
+                
+                # Update dashboard with available signals
+                if db_parser.database:
+                    signals = []
+                    for msg in db_parser.database.messages:
+                        for sig in msg.signals:
+                            signals.append((msg.name, sig.name, sig.unit or ""))
+                    self.dashboard_manager.set_available_signals(interface_id, signals)
+                
+                self.status_label.setText(f"Base de données chargée pour {interface_id}")
+                logger.info(f"Database loaded for interface {interface_id}: {db_path}")
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Erreur de chargement",
+                    f"Impossible de charger la base de données:\n{db_path}"
+                )
+        except Exception as e:
+            logger.error(f"Error loading database for {interface_id}: {e}")
+            QMessageBox.critical(
+                self,
+                "Erreur",
+                f"Erreur lors du chargement de la base de données:\n{str(e)}"
+            )
+    
     def on_interface_disconnect(self, interface_id):
         """Handle interface disconnection"""
         if interface_id in self.can_managers:

@@ -123,15 +123,21 @@ class CanInterfaceWidget(QWidget):
     def toggle_connection(self):
         """Toggle connection state"""
         if self.connect_btn.isChecked():
-            # Vérifier si une base de données est nécessaire
+            # Warn if no database is loaded (but allow connection)
             if self.interface_type != "virtual" and self.db_combo.currentData() is None:
-                QMessageBox.warning(
+                reply = QMessageBox.question(
                     self,
-                    "Base de données requise",
-                    "Une base de données DBC/SYM doit être chargée avant de connecter une interface physique."
+                    "Connexion sans base de données",
+                    "Aucune base de données DBC/SYM n'est chargée.\n\n"
+                    "Vous pourrez voir les messages CAN bruts mais pas les signaux décodés.\n"
+                    "Vous pouvez charger une base de données après la connexion.\n\n"
+                    "Continuer sans base de données ?",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.Yes
                 )
-                self.connect_btn.setChecked(False)
-                return
+                if reply == QMessageBox.No:
+                    self.connect_btn.setChecked(False)
+                    return
             self.connect_requested.emit(self.interface_id)
         else:
             self.disconnect_requested.emit(self.interface_id)
@@ -206,6 +212,15 @@ class CanInterfaceWidget(QWidget):
         if db_path:
             self.database_path = db_path
             self.database_changed.emit(self.interface_id, db_path)
+            
+            # If connected, show message that database has been loaded
+            if self.is_connected:
+                QMessageBox.information(
+                    self,
+                    "Base de données chargée",
+                    f"La base de données a été chargée.\n\n"
+                    f"Les messages CAN seront maintenant décodés avec les signaux définis dans la base de données."
+                )
             
     def browse_database(self):
         """Browse for database file"""

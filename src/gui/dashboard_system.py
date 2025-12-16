@@ -612,6 +612,11 @@ class DashboardWidget(QWidget):
         self.grid_layout.setSpacing(12)
         self.grid_layout.setContentsMargins(16, 16, 16, 16)
         
+        # Set grid to expand columns and rows equally
+        for i in range(10):
+            self.grid_layout.setColumnStretch(i, 1)
+            self.grid_layout.setRowStretch(i, 1)
+        
         scroll.setWidget(container)
         main_layout.addWidget(scroll)
         
@@ -709,6 +714,22 @@ class DashboardWidget(QWidget):
             
     def add_widget(self, widget_type, title, row, col, rowspan=1, colspan=1, config=None):
         """Add a widget to the dashboard"""
+        # Check if position is already occupied
+        for (existing_row, existing_col), existing_widget in list(self.widgets.items()):
+            existing_config = self.widget_configs.get((existing_row, existing_col), {})
+            existing_rowspan = existing_config.get('rowspan', 1)
+            existing_colspan = existing_config.get('colspan', 1)
+            
+            # Check for overlap
+            if (row < existing_row + existing_rowspan and row + rowspan > existing_row and
+                col < existing_col + existing_colspan and col + colspan > existing_col):
+                QMessageBox.warning(
+                    self,
+                    "Position occupée",
+                    f"La position ({row}, {col}) est déjà occupée ou chevauche un autre widget."
+                )
+                return
+        
         widget = None
         
         if widget_type == "Jauge circulaire":
@@ -728,7 +749,9 @@ class DashboardWidget(QWidget):
                 signal_data = config['signal_data']
                 widget.signal_name = f"{signal_data['message']}.{signal_data['signal']}"
             
-            widget.setMinimumSize(180, 180)
+            widget.setMinimumSize(200, 200)
+            from PyQt5.QtWidgets import QSizePolicy
+            widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             self.grid_layout.addWidget(widget, row, col, rowspan, colspan)
             self.widgets[(row, col)] = widget
             
