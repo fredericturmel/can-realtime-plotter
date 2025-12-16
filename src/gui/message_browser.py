@@ -103,29 +103,6 @@ class MessageBrowser(QWidget):
         self.search_box.textChanged.connect(self.filter_messages)
         toolbar_layout.addWidget(self.search_box)
         
-        # Collapse/Expand all toggle (compact icon)
-        self.collapse_btn = QPushButton("▼")
-        self.collapse_btn.setFixedSize(28, 28)
-        self.collapse_btn.setToolTip("Tout replier/déplier (clic droit ou molette)")
-        self.collapse_btn.clicked.connect(self.toggle_all_items)
-        self.collapse_btn.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                color: #8b949e;
-                border: 1px solid #30363d;
-                border-radius: 4px;
-                font-size: 14px;
-                padding: 0px;
-            }
-            QPushButton:hover {
-                background-color: #21262d;
-                color: #c9d1d9;
-                border-color: #58a6ff;
-            }
-        """)
-        self.all_collapsed = False
-        toolbar_layout.addWidget(self.collapse_btn)
-        
         layout.addWidget(toolbar)
         
         # Splitter pour messages et détails
@@ -133,7 +110,8 @@ class MessageBrowser(QWidget):
         
         # Tree widget pour les messages
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(["Message / Signal", "ID", "Valeur", "Unité"])
+        self.all_collapsed = False
+        self.tree.setHeaderLabels(["▼ Message / Signal", "ID", "Valeur", "Unité"])
         self.tree.setColumnWidth(0, 250)
         self.tree.setColumnWidth(1, 100)
         self.tree.setColumnWidth(2, 150)
@@ -143,6 +121,9 @@ class MessageBrowser(QWidget):
         self.tree.header().setSortIndicatorShown(True)
         self.tree.sortByColumn(1, Qt.AscendingOrder)  # Tri par défaut
         self.tree.itemClicked.connect(self.on_item_clicked)
+        
+        # Connect header click for column 0 to toggle expand/collapse
+        self.tree.header().sectionClicked.connect(self.on_header_clicked)
         
         # Install event filter for right-click and middle-click
         self.tree.viewport().installEventFilter(self)
@@ -319,6 +300,11 @@ class MessageBrowser(QWidget):
         
         return super().eventFilter(obj, event)
     
+    def on_header_clicked(self, logical_index):
+        """Handle header click"""
+        if logical_index == 0:  # First column
+            self.toggle_all_items()
+    
     def toggle_all_items(self):
         """Toggle collapse/expand all items"""
         self.all_collapsed = not self.all_collapsed
@@ -327,10 +313,14 @@ class MessageBrowser(QWidget):
             item = self.tree.topLevelItem(i)
             if self.all_collapsed:
                 item.setExpanded(False)
-                self.collapse_btn.setText("▶")
             else:
                 item.setExpanded(True)
-                self.collapse_btn.setText("▼")
+        
+        # Update header text
+        if self.all_collapsed:
+            self.tree.headerItem().setText(0, "▶ Message / Signal")
+        else:
+            self.tree.headerItem().setText(0, "▼ Message / Signal")
     
     def filter_messages(self, text):
         """Filter messages/signals by search text"""
