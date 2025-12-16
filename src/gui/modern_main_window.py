@@ -767,12 +767,15 @@ class ModernMainWindow(QMainWindow):
             stats = self.interface_stats[interface_id]
             stats['messages'] += 1
             
+        message_decoded = False
+        
         # Decode message if database available
         if interface_id in self.db_parsers:
             db = self.db_parsers[interface_id]
             decoded = db.decode_message(message.arbitration_id, message.data)
             
             if decoded:
+                message_decoded = True
                 # Update message browser
                 for signal_name, signal_data in decoded.items():
                     msg_name = self.find_message_name(db, message.arbitration_id)
@@ -784,6 +787,14 @@ class ModernMainWindow(QMainWindow):
                             signal_data['physical'],
                             signal_data.get('unit', '')
                         )
+        
+        # If message was not decoded (no DBC or unknown ID), add as raw message
+        if not message_decoded:
+            self.message_browser.add_raw_message(
+                message.arbitration_id,
+                message.data,
+                message.timestamp
+            )
                         
         # Record if active
         if self.recorder.is_recording:

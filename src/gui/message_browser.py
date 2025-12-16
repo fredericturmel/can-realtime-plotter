@@ -71,6 +71,7 @@ class MessageBrowser(QWidget):
         self.db = None
         self.current_values = {}  # (message_name, signal_name) -> (raw, physical, unit)
         self.signal_widgets = {}  # (message_name, signal_name) -> SignalValueWidget
+        self.raw_messages = {}  # can_id -> (data, timestamp, item)
         
         self.init_ui()
         
@@ -159,6 +160,7 @@ class MessageBrowser(QWidget):
         self.db = db
         self.tree.clear()
         self.signal_widgets.clear()
+        self.raw_messages.clear()  # Clear raw messages when loading new DB
         
         if not db:
             return
@@ -205,6 +207,37 @@ class MessageBrowser(QWidget):
                 
         self.tree.expandAll()
         
+    def add_raw_message(self, can_id, data, timestamp):
+        """Add or update a raw CAN message (no DBC)"""
+        import time
+        
+        # Check if message already exists
+        if can_id in self.raw_messages:
+            # Update existing
+            _, _, item = self.raw_messages[can_id]
+            data_str = " ".join(f"{b:02X}" for b in data)
+            item.setText(2, data_str)
+            item.setText(3, f"{time.time():.3f}")
+            self.raw_messages[can_id] = (data, timestamp, item)
+        else:
+            # Create new raw message item
+            msg_item = QTreeWidgetItem(self.tree)
+            msg_name = f"Unknown_0x{can_id:03X}"
+            msg_item.setText(0, msg_name)
+            msg_item.setText(1, f"0x{can_id:03X}")
+            data_str = " ".join(f"{b:02X}" for b in data)
+            msg_item.setText(2, data_str)
+            msg_item.setText(3, f"{time.time():.3f}")
+            msg_item.setData(0, Qt.UserRole, {"type": "raw_message", "can_id": can_id})
+            
+            # Style raw message differently
+            font = QFont()
+            font.setBold(True)
+            msg_item.setFont(0, font)
+            msg_item.setForeground(0, QColor("#d29922"))  # Orange for undecoded
+            
+            self.raw_messages[can_id] = (data, timestamp, msg_item)
+    
     def update_signal_value(self, message_name, signal_name, raw_value, physical_value, unit=""):
         """Update a signal's value"""
         key = (message_name, signal_name)
@@ -278,12 +311,34 @@ class MessageBrowser(QWidget):
                 
             details.append(f"")
             details.append(f"Signaux:")
-            for signal in message.signals:
-                details.append(f"  • {signal.name}")
+            for sig in message.signals:
+                details.append(f"  - {sig.name}")
                 
             self.details_text.setText("\n".join(details))
             
             self.message_selected.emit(message.name)
+        
+        elif data["type"] == "raw_message":
+            # Raw message without DBC
+            can_id = data["can_id"]
+            if can_id in self.raw_messages:
+                msg_data, timestamp, _ = self.raw_messages[can_id]
+                
+                details = []
+                details.append(f"Message: Unknown_0x{can_id:03X}")
+                details.append(f"CAN ID: 0x{can_id:03X} ({can_id})")
+                details.append(f"DLC: {len(msg_data)} bytes")
+                details.append(f"")
+                details.append(f"Données brutes:")
+                details.append(f"  HEX: {' '.join(f'{b:02X}' for b in msg_data)}")
+                details.append(f"  DEC: {' '.join(f'{b:3d}' for b in msg_data)}")
+                details.append(f"  BIN: {' '.join(f'{b:08b}' for b in msg_data)}")
+                details.append(f"")
+                details.append(f"⚠️ Message non décodé")
+                details.append(f"Aucune base de données (DBC/SYM) n'est chargée")
+                details.append(f"ou ce message n'est pas défini dans la base.")
+                
+                self.details_text.setText("\n".join(details))
             
     def eventFilter(self, obj, event):
         """Handle right-click and middle-click on tree viewport"""
