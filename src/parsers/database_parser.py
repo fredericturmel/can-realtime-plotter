@@ -178,7 +178,7 @@ class DatabaseParser:
             data: Raw message data bytes
             
         Returns:
-            Dictionary of decoded signal values or None
+            Dictionary of signal_name -> {raw, physical, unit} or None
         """
         if not self.db:
             return None
@@ -188,8 +188,29 @@ class DatabaseParser:
             if not message:
                 return None
             
-            decoded = message.decode(data)
-            return decoded
+            # Decode to get physical values
+            decoded_physical = message.decode(data)
+            
+            # Build result with raw, physical, and unit for each signal
+            result = {}
+            for signal in message.signals:
+                signal_name = signal.name
+                if signal_name in decoded_physical:
+                    physical_value = decoded_physical[signal_name]
+                    
+                    # Calculate raw value (reverse scale and offset)
+                    if signal.scale != 0:
+                        raw_value = int((physical_value - signal.offset) / signal.scale)
+                    else:
+                        raw_value = physical_value
+                    
+                    result[signal_name] = {
+                        'raw': raw_value,
+                        'physical': physical_value,
+                        'unit': signal.unit or ''
+                    }
+            
+            return result if result else None
             
         except Exception as e:
             logger.debug(f"Failed to decode message {msg_id:X}: {str(e)}")
