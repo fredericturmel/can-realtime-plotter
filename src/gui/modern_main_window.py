@@ -20,7 +20,7 @@ from src.recorder.data_recorder import DataRecorder
 from src.triggers.trigger_system import TriggerManager
 
 # New modules
-from src.gui.interface_manager import InterfaceManagerPanel
+from src.gui.interface_manager_v2 import InterfaceManagerPanel
 from src.gui.message_browser import MessageBrowser
 from src.gui.dashboard_system import DashboardManager
 from src.gui.message_sender import MessageSenderWidget
@@ -486,7 +486,8 @@ class ModernMainWindow(QMainWindow):
         self.interface_panel = InterfaceManagerPanel()
         self.interface_panel.connection_requested.connect(self.on_interface_connect)
         self.interface_panel.disconnection_requested.connect(self.on_interface_disconnect)
-        # Connect database_changed signal from individual interface widgets
+        self.interface_panel.database_changed.connect(self.on_database_changed)
+        # Connect interface_added signal
         self.interface_panel.interface_added.connect(self.on_interface_added)
         self.interface_dock.setWidget(self.interface_panel)
         
@@ -627,15 +628,27 @@ class ModernMainWindow(QMainWindow):
             # Create CAN manager for this interface
             can_manager = CANInterfaceManager()
             
-            # Connect (simplified - you'd need proper channel/bitrate from interface_panel)
-            # This is a placeholder
+            # Get interface config from panel
+            interface_config = self.interface_panel.interfaces.get(interface_id)
+            if interface_config:
+                channel = interface_config.get('channel', 'virtual')
+                bitrate = interface_config.get('bitrate', 500000)
+            else:
+                # Fallback
+                channel = "vcan0" if interface_type == "Virtual" else "PCAN_USBBUS1"
+                bitrate = 500000
+            
+            # Connect
             can_manager.connect(
                 interface_type.lower(),
-                channel="vcan0" if interface_type == "Virtual" else "PCAN_USBBUS1",
-                bitrate=500000
+                channel=channel,
+                bitrate=bitrate
             )
             
             self.can_managers[interface_id] = can_manager
+            
+            # Initialize db_parser to None
+            db_parser = None
             
             # Load database if specified
             if db_path:
@@ -645,8 +658,11 @@ class ModernMainWindow(QMainWindow):
                     self.message_browser.load_database(db_parser.database)
                     # Update message sender with new db_parser and can_manager
                     self.message_sender.set_managers(can_manager, db_parser)
-            else:
-                # Update message sender with just can_manager
+                else:
+                    db_parser = None
+            
+            # Update message sender if no database
+            if db_parser is None:
                 self.message_sender.set_managers(can_manager, None)
                     
             # Setup message reception
