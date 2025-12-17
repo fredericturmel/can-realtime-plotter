@@ -11,6 +11,21 @@ A comprehensive CAN bus data analysis and visualization application with **multi
 
 ---
 
+## 🤖 **Auto-Improvement System**
+
+This project includes an **automated quality assurance system** that continuously monitors and improves code quality:
+
+- ✅ **Pre-commit validation** - Blocks bad code before it's committed
+- ✅ **Continuous analysis** - GitHub Actions runs quality checks on every push
+- ✅ **Automated issues** - Problems detected automatically become GitHub issues
+- ✅ **AI code review** - GPT-4/Gemini reviews every Pull Request
+- ✅ **Proactive monitoring** - Daily scans catch issues before they become problems
+
+**📖 Quick Start:** [AUTO_IMPROVEMENT_QUICKSTART.md](docs/AUTO_IMPROVEMENT_QUICKSTART.md)  
+**📚 Full Documentation:** [AUTO_IMPROVEMENT_SYSTEM.md](docs/AUTO_IMPROVEMENT_SYSTEM.md)
+
+---
+
 ## 🎉 **NEW in v2.0!**
 
 ### ✨ Major Features

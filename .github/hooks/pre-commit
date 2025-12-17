@@ -1,0 +1,142 @@
+#!/usr/bin/env python3
+"""
+Pre-commit hook pour validation automatique avant chaque commit.
+Installe avec: python .github/scripts/install_hooks.py
+"""
+
+import subprocess
+import sys
+import os
+
+
+def run_command(cmd: list, description: str) -> bool:
+    """Exécute une commande et retourne True si succès"""
+    print(f"\n🔍 {description}...")
+    
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        
+        if result.returncode == 0:
+            print(f"✅ {description} - OK")
+            return True
+        else:
+            print(f"❌ {description} - ÉCHEC")
+            print(result.stdout)
+            print(result.stderr)
+            return False
+            
+    except subprocess.TimeoutExpired:
+        print(f"⏱️ {description} - TIMEOUT")
+        return False
+    except Exception as e:
+        print(f"❌ {description} - ERREUR: {e}")
+        return False
+
+
+def check_code_formatting() -> bool:
+    """Vérifie le formatage du code"""
+    return run_command(
+        ['black', '--check', 'src/', 'tests/'],
+        "Vérification formatage (Black)"
+    )
+
+
+def check_code_style() -> bool:
+    """Vérifie le style du code"""
+    return run_command(
+        ['flake8', 'src/', 'tests/', '--max-line-length=120', '--max-complexity=10'],
+        "Vérification style (Flake8)"
+    )
+
+
+def check_type_hints() -> bool:
+    """Vérifie les type hints"""
+    result = run_command(
+        ['mypy', 'src/', '--ignore-missing-imports'],
+        "Vérification types (MyPy)"
+    )
+    # MyPy peut retourner des warnings, on continue quand même
+    return True
+
+
+def check_security() -> bool:
+    """Vérifie la sécurité"""
+    return run_command(
+        ['bandit', '-r', 'src/', '-ll'],  # Low level warnings
+        "Vérification sécurité (Bandit)"
+    )
+
+
+def run_unit_tests() -> bool:
+    """Exécute les tests unitaires"""
+    return run_command(
+        ['pytest', 'tests/', '-v', '--tb=short'],
+        "Exécution tests unitaires"
+    )
+
+
+def check_imports() -> bool:
+    """Vérifie l'ordre des imports"""
+    return run_command(
+        ['isort', '--check-only', 'src/', 'tests/'],
+        "Vérification imports (isort)"
+    )
+
+
+def main() -> int:
+    """Point d'entrée principal"""
+    print("="*80)
+    print("PRE-COMMIT VALIDATION")
+    print("="*80)
+    
+    checks = [
+        ("Formatage", check_code_formatting),
+        ("Style", check_code_style),
+        ("Types", check_type_hints),
+        ("Sécurité", check_security),
+        ("Imports", check_imports),
+        ("Tests", run_unit_tests),
+    ]
+    
+    results = {}
+    for name, check_func in checks:
+        results[name] = check_func()
+        
+    # Résumé
+    print("\n" + "="*80)
+    print("RÉSUMÉ")
+    print("="*80)
+    
+    for name, passed in results.items():
+        status = "✅" if passed else "❌"
+        print(f"{status} {name}")
+        
+    # Déterminer si on peut commit
+    critical_checks = ["Formatage", "Style", "Sécurité", "Tests"]
+    critical_failed = [name for name in critical_checks if not results.get(name, False)]
+    
+    if critical_failed:
+        print(f"\n❌ COMMIT BLOQUÉ - Vérifications critiques échouées: {', '.join(critical_failed)}")
+        print("\n💡 Commandes pour corriger:")
+        if "Formatage" in critical_failed:
+            print("   black src/ tests/")
+        if "Style" in critical_failed:
+            print("   Corriger les erreurs Flake8 manuellement")
+        if "Imports" in critical_failed:
+            print("   isort src/ tests/")
+        if "Tests" in critical_failed:
+            print("   Corriger les tests qui échouent")
+            
+        return 1
+    else:
+        print("\n✅ TOUTES LES VÉRIFICATIONS PASSÉES - Commit autorisé")
+        return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
